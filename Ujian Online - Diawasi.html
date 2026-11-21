@@ -1,0 +1,171 @@
+<html lang="id"><head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ujian Online - Diawasi</title>
+<style>
+body{font-family:sans-serif;background:#f1f1f1;padding:16px;max-width:650px;margin:auto}
+.card{background:#fff;padding:16px;border-radius:12px;margin-bottom:12px;box-shadow:0 2px 6px #0002}
+h1{text-align:center}
+.warning{background:#fff3cd;border:2px solid #ffc107;padding:12px;border-radius:10px;text-align:center;font-weight:bold}
+.danger{background:#f8d7da;border:2px solid #dc3545;padding:16px;border-radius:10px;text-align:center}
+button{width:100%;padding:14px;background:#198754;color:#fff;border:none;border-radius:10px;font-size:17px;font-weight:bold;cursor:pointer}
+input[type=text]{width:100%;padding:12px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box}
+label{display:block;margin:6px 0;cursor:pointer}
+#pelanggaran{font-size:20px;color:#dc3545}
+</style>
+</head>
+<body>
+
+<div id="halamanAwal" class="card">
+<h1>📝 UJIAN ONLINE</h1>
+<p style="text-align:center">⚠️ <b>PERATURAN:</b><br>
+Dilarang keluar tab / buka aplikasi lain.<br>
+Keluar tab <b>3x = GAGAL / TIDAK MENGIKUTI UJIAN</b>.<br>
+Semua aktivitas dipantau dan dicatat di Google Spreadsheet.</p>
+<input type="text" id="nama" placeholder="Isi Nama Lengkap">
+<input type="text" id="kelas" placeholder="Isi Kelas / NIS" style="margin-top:8px">
+<button onclick="mulai()" style="margin-top:12px">MULAI UJIAN ▶️</button>
+</div>
+
+<div id="halamanUjian" style="display:none">
+<div class="warning">⚠️ Pelanggaran Keluar Tab: <span id="pelanggaran">0 / 3</span><br><small>Sisa Waktu: <span id="timer">30:00</span></small></div>
+<div id="soalBox"></div>
+<button onclick="kirim()">KUMPULKAN JAWABAN ✅</button>
+</div>
+
+<div id="halamanGagal" class="danger" style="display:none">
+<h2>❌ ANDA DIDISKUALIFIKASI</h2>
+<p>Anda keluar tab sebanyak 3x.<br>Ujian dinyatakan <b>TIDAK MENGIKUTI / GAGAL</b>.<br>Pelanggaran sudah dicatat di Spreadsheet guru.</p>
+</div>
+
+<script>
+// ============================================================
+// GANTI INI DENGAN URL WEB APP APPS SCRIPT LU (lihat cara di bawah)
+// Contoh: https://script.google.com/macros/s/XXXX/exec
+// ============================================================
+const URL_SHEET = "https://script.google.com/macros/s/AKfycbw-iir4ssamAvmoT3bBSyiqx6q-rYcmxRMKq5l62uGiVEtxxWhRMh83-XVTdoqIT7tt/exec";
+
+// SOAL UJIAN - Ganti sesuai mapel lu, contoh 10 soal
+const SOAL = [
+  {q:"1. Apa ibukota Indonesia?", a:["Jakarta","Bandung","Surabaya","Medan"], benar:0},
+  {q:"2. 5 + 7 = ?", a:["10","11","12","13"], benar:2},
+  {q:"3. Bahasa Inggris dari 'buku'?", a:["Pen","Book","Table","Chair"], benar:1},
+  {q:"4. Pancasila sila ke-1?", a:["Kemanusiaan","Ketuhanan Yang Maha Esa","Persatuan","Keadilan"], benar:1},
+  {q:"5. 10 x 2 = ?", a:["18","20","22","12"], benar:1},
+  {q:"6. Warna bendera Indonesia?", a:["Merah Putih","Biru Putih","Hijau Kuning","Hitam Putih"], benar:0},
+  {q:"7. Hewan yang bisa terbang?", a:["Kucing","Burung","Ikan","Sapi"], benar:1},
+  {q:"8. Lawan kata 'panas'?", a:["Hangat","Dingin","Terik","Panas sekali"], benar:1},
+  {q:"9. 100 - 25 = ?", a:["75","70","65","80"], benar:0},
+  {q:"10. Siapa presiden pertama Indonesia?", a:["Jokowi","Soekarno","Soeharto","Habibie"], benar:1},
+];
+
+let pelanggaran = 0;
+let namaSiswa = "", kelasSiswa = "";
+let sudahKirim = false;
+let waktu = 30*60;
+
+function mulai(){
+  namaSiswa = document.getElementById('nama').value.trim();
+  kelasSiswa = document.getElementById('kelas').value.trim();
+  if(!namaSiswa || !kelasSiswa){ alert("Isi Nama dan Kelas dulu!"); return; }
+  document.getElementById('halamanAwal').style.display='none';
+  document.getElementById('halamanUjian').style.display='block';
+  // Tampilkan soal
+  let html = "";
+  SOAL.forEach((s,i)=>{
+    html += `<div class="card"><b>${s.q}</b>`;
+    s.a.forEach((opt,j)=>{
+      html += `<label><input type="radio" name="soal${i}" value="${j}"> ${opt}</label>`;
+    });
+    html += `</div>`;
+  });
+  document.getElementById('soalBox').innerHTML = html;
+  kirimLog("MULAI UJIAN", 0);
+  // Timer
+  setInterval(()=>{
+    if(sudahKirim) return;
+    waktu--;
+    let m = Math.floor(waktu/60), d = waktu%60;
+    document.getElementById('timer').innerText = `${String(m).padStart(2,'0')}:${String(d).padStart(2,'0')}`;
+    if(waktu<=0){ kirim(); }
+  },1000);
+}
+
+// FUNGSI PANTAU KELUAR TAB - INTINYA DI SINI
+function catatPelanggaran(alasan){
+  if(sudahKirim) return;
+  pelanggaran++;
+  document.getElementById('pelanggaran').innerText = pelanggaran + " / 3";
+  alert("⚠️ PERINGATAN " + pelanggaran + "/3 !\nAnda ketahuan " + alasan + ".\nKalau sampai 3x, Anda GAGAL!");
+  kirimLog("PELANGGARAN KE-" + pelanggaran + " : " + alasan, pelanggaran);
+  if(pelanggaran >= 3){
+    gagal();
+  }
+}
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){ catatPelanggaran("Keluar Tab / Pindah Aplikasi"); }
+});
+window.addEventListener('blur', ()=>{
+  // Jangan double hitung kalau visibilitychange sudah jalan, kasih jeda
+  // Kita pakai cara ini biar di HP juga ke-detect
+  if(!document.hidden){ /* diabaikan biar gak double */ }
+});
+window.addEventListener('pagehide', ()=>{ kirimLog("MENUTUP TAB", pelanggaran); });
+
+function gagal(){
+  sudahKirim = true;
+  document.getElementById('halamanUjian').style.display='none';
+  document.getElementById('halamanGagal').style.display='block';
+  kirimLog("DIDISKUALIFIKASI - KELUAR TAB 3X", 3);
+  // Kunci agar tidak bisa balik lagi
+  localStorage.setItem("ujian_gagal_"+namaSiswa, "ya");
+}
+
+function kirim(){
+  if(sudahKirim) return;
+  sudahKirim = true;
+  let benar = 0;
+  SOAL.forEach((s,i)=>{
+    let pilih = document.querySelector(`input[name="soal${i}"]:checked`);
+    if(pilih && parseInt(pilih.value)===s.benar) benar++;
+  });
+  let nilai = Math.round((benar/SOAL.length)*100);
+  alert("Ujian selesai! Nilai kamu: " + nilai + "\nPelanggaran: " + pelanggaran + "x");
+  kirimLog("SELESAI - Nilai: " + nilai, pelanggaran);
+}
+
+function kirimLog(status, jmlPelanggaran){
+  try{
+    var url = URL_SHEET + "?nama=" + encodeURIComponent(namaSiswa) + "&kelas=" + encodeURIComponent(kelasSiswa) + "&status=" + encodeURIComponent(status) + "&pelanggaran=" + jmlPelanggaran + "&waktu=" + encodeURIComponent(new Date().toLocaleString('id-ID'));
+    // Pakai Image biar gak diblokir CORS di HP
+    var img = new Image();
+    img.src = url;
+    // Cadangan pakai fetch juga
+    fetch(url, {mode:"no-cors"}).catch(()=>{});
+  }catch(e){}
+}
+</script>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script>
+</body></html>
