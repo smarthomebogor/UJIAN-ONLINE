@@ -1,0 +1,273 @@
+<html lang="id"><head><style>
+@font-face {
+  font-family: "Optimistic";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/fonts/OptimisticAI_VF_Optimized.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Optimistic Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/OptimisticMono_W_TextRegular.woff2") format("woff2");
+}
+:where(html) {
+  font-family: "Optimistic", system-ui, sans-serif;
+}
+:where(code, pre, kbd, samp) {
+  font-family: "Optimistic Mono", ui-monospace, monospace;
+}
+</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pantau Keluar Tab - Monitor Ujian</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+body{background:#eef2f7;margin:0;padding:14px}
+h1{margin:0;font-size:22px} p{color:#666;font-size:14px}
+.box{background:#fff;border-radius:16px;padding:16px;margin-top:12px}
+input,select,button{padding:12px;border-radius:12px;border:1px solid #ddd;width:100%;margin-top:8px;font-size:14px}
+button{background:#2563eb;color:#fff;border:none;font-weight:bold;cursor:pointer}
+button.g{background:#16a34a} button.r{background:#dc2626} button.y{background:#f59e0b;color:#000} button.d{background:#111}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.murid{border:2px solid #eee;border-radius:14px;padding:12px;margin-top:10px}
+.murid.bahaya{border-color:#dc2626;background:#fef2f2}
+.badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:bold}
+.hijau{background:#dcfce7}.kuning{background:#fef9c3}.merah{background:#fee2e2;color:#dc2626}.biru{background:#dbeafe}
+#timer{font-size:28px;font-weight:bold}
+.tab{display:flex;gap:8px;margin-top:12px}.tab button{background:#fff;color:#111;border:1px solid #ddd}.tab button.on{background:#111;color:#fff}
+.hidden{display:none}
+.alert{position:fixed;top:12px;left:12px;right:12px;background:#dc2626;color:#fff;padding:14px;border-radius:14px;font-weight:bold;text-align:center;z-index:99;display:none;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.big{font-size:52px;text-align:center;margin:6px 0}
+.warnbox{background:#fef2f2;border:2px solid #fca5a5;border-radius:14px;padding:14px;text-align:center}
+.kotak{border:1px solid #eee;border-radius:12px;padding:10px;margin-top:8px;font-size:13px}
+</style>
+</head>
+<body>
+<div id="alertBox" class="alert">⚠️ KAMU KELUAR TAB! Kembali ke ujian sekarang! Peringatan ditambah.</div>
+
+<h1>👁️ Pantau Keluar Tab - Ujian Online</h1>
+<p>Kalau murid pindah tab / buka WA / YouTube / aplikasi lain → langsung ketahuan guru.</p>
+
+<div class="tab">
+<button id="btnGuru" class="on" onclick="ganti('guru')">👨‍🏫 MODE GURU</button>
+<button id="btnMurid" onclick="ganti('murid')">🧑‍🎓 MODE MURID</button>
+</div>
+
+<!-- ============ GURU ============ -->
+<div id="pageGuru">
+<div class="box">
+<b>⏰ Timer: <span id="timer">60:00</span></b>
+<div class="row"><button onclick="setT(30)">30 mnt</button><button onclick="setT(60)">60 mnt</button><button onclick="setT(90)">90 mnt</button></div>
+<div class="row"><button class="g" onclick="mulai()">▶ Mulai</button><button class="y" onclick="jeda()">⏸ Jeda</button><button class="r" onclick="selesaiAll()">■ Selesai</button></div>
+<p><b id="stat">0 murid • Total keluar tab: 0x • Total peringatan: 0x</b></p>
+<div class="row"><button class="d" onclick="contoh()">+ 5 Murid Contoh</button><button class="g" onclick="exportCSV()">⬇ Export CSV</button><button class="r" onclick="resetAll()">🗑 Reset</button></div>
+</div>
+
+<div class="box">
+<b>➕ Tambah Murid</b>
+<input id="nama" placeholder="Nama murid">
+<input id="nis" placeholder="NIS">
+<button onclick="tambah()">Tambah Murid</button>
+<input id="cari" placeholder="🔍 Cari nama / NIS..." oninput="tampilGuru()">
+</div>
+
+<div class="box">
+<b>👥 Live - Siapa Keluar Tab?</b>
+<p style="font-size:12px">🟢 Aman &nbsp; 🟡 1x Keluar &nbsp; 🔴 2x+ Keluar / Bermasalah &nbsp; ⚫ Terputus</p>
+<div id="listGuru"><p>Belum ada murid. Klik + 5 Murid Contoh.</p></div>
+</div>
+
+<div class="box"><b>📋 Log Keluar Tab</b><div id="logGuru"><p>Belum ada log.</p></div></div>
+</div>
+
+<!-- ============ MURID ============ -->
+<div id="pageMurid" class="hidden">
+<div class="box" id="loginMurid">
+<b>🧑‍🎓 Masuk Ujian</b>
+<input id="mNama" placeholder="Nama lengkap">
+<input id="mNIS" placeholder="NIS">
+<input id="mKode" placeholder="Kode Ujian (tanya guru, contoh: MTK-2026)">
+<button class="g" onclick="masuk()">Masuk Ujian →</button>
+<p style="font-size:12px">⚠️ Selama ujian: JANGAN pindah tab, JANGAN buka aplikasi lain, JANGAN keluar fullscreen. Semua tercatat!</p>
+</div>
+
+<div id="ujianMurid" class="hidden">
+<div class="box warnbox">
+<div style="font-size:12px">KAMU SEDANG DIPANTAU</div>
+<div class="big" id="emojiStatus">🟢</div>
+<b id="statusMurid">AMAN - Tetap di tab ini!</b>
+<p id="infoMurid" style="margin:4px 0">Keluar tab: 0x • Peringatan: 0x</p>
+<b>Sisa Waktu: <span id="timerMurid">60:00</span></b>
+</div>
+
+<div class="box">
+<b id="soalJudul">Soal 1 dari 5</b>
+<p id="soalTeks" style="color:#111;font-weight:bold;font-size:16px"></p>
+<div id="pilihan"></div>
+<div class="row"><button class="d" onclick="prevSoal()">← Sebelumnya</button><button onclick="nextSoal()">Berikutnya →</button></div>
+<button class="g" onclick="kumpulkan()">✅ Kumpulkan Jawaban</button>
+<p id="progressSoal" style="font-size:12px;text-align:center"></p>
+</div>
+
+<div class="box"><b>📜 Riwayat Kamu</b><div id="riwayatMurid"></div></div>
+</div>
+
+<div id="hasilMurid" class="hidden box" style="text-align:center">
+<div style="font-size:50px">🎉</div><h2>Ujian Selesai!</h2>
+<p id="hasilTeks"></p>
+<button onclick="location.reload()">Kembali</button>
+</div>
+</div>
+
+<script>
+// ===== DATA =====
+let murid = JSON.parse(localStorage.getItem('murid_tab')||'[]');
+let logs = JSON.parse(localStorage.getItem('logs_tab')||'[]');
+let sisa = 3600, jalan=false, idT=null;
+let saya=null, idxSoal=0, jawaban={}, keluarTab=0, peringatanSaya=0;
+let SOAL = [
+ {q:"7 + 8 × 2 = ...", a:["30","23","22","15"], benar:1},
+ {q:"Jika x + 5 = 12, x = ...", a:["5","6","7","8"], benar:2},
+ {q:"2x + 3x = ...", a:["5x","6x","5","x"], benar:0},
+ {q:"Luas persegi sisi 9 cm = ...", a:["36","72","81","90"], benar:2},
+ {q:"KPK dari 6 dan 8 = ...", a:["12","24","48","14"], benar:1},
+];
+function simpan(){ localStorage.setItem('murid_tab',JSON.stringify(murid)); localStorage.setItem('logs_tab',JSON.stringify(logs)); }
+function jam(){ return new Date().toLocaleTimeString('id-ID'); }
+function addLog(nama,aksi){ logs.unshift(jam()+' - '+nama+': '+aksi); if(logs.length>100) logs.pop(); simpan(); tampilGuru(); }
+function ganti(mode){
+  document.getElementById('pageGuru').classList.toggle('hidden', mode!=='guru');
+  document.getElementById('pageMurid').classList.toggle('hidden', mode!=='murid');
+  document.getElementById('btnGuru').classList.toggle('on', mode==='guru');
+  document.getElementById('btnMurid').classList.toggle('on', mode==='murid');
+}
+// ===== GURU =====
+function tambah(){
+  let n=nama.value.trim(), s=nis.value.trim(); if(!n||!s) return alert('Isi nama & NIS!');
+  murid.push({id:Date.now(), nama:n, nis:s, status:'Aman', soal:0, skor:0, keluar:0, warn:0, terakhir:'Baru masuk'});
+  addLog(n,'Masuk ujian'); nama.value=''; nis.value=''; tampilGuru();
+}
+function contoh(){
+  let c=[['Aisyah','001'],['Budi','002'],['Citra','003'],['Dimas','004'],['Eka','005']];
+  c.forEach(x=>{ if(!murid.find(m=>m.nis===x[1])) murid.push({id:Date.now()+Math.random(), nama:x[0], nis:x[1], status:'Aman', soal:0, skor:0, keluar:0, warn:0, terakhir:'Baru masuk'}); });
+  addLog('Sistem','5 murid contoh ditambah'); tampilGuru();
+}
+function warnMurid(id){ let m=murid.find(x=>x.id===id); m.warn++; if(m.warn>=3) m.status='Bermasalah'; addLog(m.nama,'Diberi peringatan guru ('+m.warn+'x)'); tampilGuru(); }
+function hapusMurid(id){ let m=murid.find(x=>x.id===id); murid=murid.filter(x=>x.id!==id); addLog(m.nama,'Dikeluarkan guru'); tampilGuru(); }
+function resetWarn(id){ let m=murid.find(x=>x.id===id); m.warn=0; m.keluar=0; m.status='Aman'; addLog(m.nama,'Peringatan direset'); tampilGuru(); }
+function tampilGuru(){
+  let q=(cari.value||'').toLowerCase();
+  let f=murid.filter(m=>m.nama.toLowerCase().includes(q)||m.nis.includes(q));
+  listGuru.innerHTML = f.length ? f.map(m=>{
+    let cls = m.status==='Bermasalah'?'bahaya':'';
+    let badge = m.status==='Bermasalah'?'<span class="badge merah">🔴 BERMASALAH</span>':m.keluar>=1?'<span class="badge kuning">🟡 KELUAR '+m.keluar+'x</span>':'<span class="badge hijau">🟢 AMAN</span>';
+    let emoji = m.status==='Bermasalah'?'🔴':m.keluar>=2?'🟠':m.keluar===1?'🟡':'🟢';
+    return `<div class="murid ${cls}"><b>${emoji} ${m.nama}</b> ${badge}<br><small>NIS ${m.nis} • Skor ${m.skor} • Soal ${m.soal}/${SOAL.length} • Keluar Tab: <b style="color:red">${m.keluar}x</b> • Peringatan: ${m.warn}x</small><br><small>Terakhir: ${m.terakhir}</small><div class="row"><button class="y" onclick="warnMurid(${m.id})">⚠️ Peringatan</button><button class="g" onclick="resetWarn(${m.id})">↺ Reset</button><button class="r" onclick="hapusMurid(${m.id})">✕ Keluarkan</button></div></div>`;
+  }).join('') : '<p>Belum ada murid. Klik + 5 Murid Contoh.</p>';
+  let keluar = murid.reduce((a,m)=>a+m.keluar,0);
+  let w = murid.reduce((a,m)=>a+m.warn,0);
+  stat.textContent = murid.length+' murid • Total keluar tab: '+keluar+'x • Total peringatan: '+w+'x';
+  logGuru.innerHTML = logs.slice(0,20).map(l=>'<p style="font-size:13px;margin:4px 0">'+l+'</p>').join('') || '<p>Belum ada log.</p>';
+}
+function setT(m){ sisa=m*60; upd(); updMurid(); }
+function upd(){ timer.textContent=String(Math.floor(sisa/60)).padStart(2,'0')+':'+String(sisa%60).padStart(2,'0'); }
+function updMurid(){ if(document.getElementById('timerMurid')) document.getElementById('timerMurid').textContent=String(Math.floor(sisa/60)).padStart(2,'0')+':'+String(sisa%60).padStart(2,'0'); }
+function mulai(){ if(jalan) return; jalan=true; idT=setInterval(()=>{ if(sisa>0){sisa--; upd(); updMurid();} else selesaiAll(); },1000); }
+function jeda(){ jalan=false; clearInterval(idT); }
+function selesaiAll(){ jeda(); murid.forEach(m=>{ if(m.status!=='Selesai'){m.status='Selesai'; m.soal=SOAL.length;} }); addLog('Sistem','Ujian selesai'); tampilGuru(); }
+function resetAll(){ if(!confirm('Hapus semua data?')) return; murid=[]; logs=[]; simpan(); tampilGuru(); }
+function exportCSV(){
+  let csv='Nama,NIS,Status,Soal,Skor,Keluar Tab,Peringatan,Terakhir\n'+murid.map(m=>`${m.nama},${m.nis},${m.status},${m.soal},${m.skor},${m.keluar},${m.warn},${m.terakhir}`).join('\n');
+  let a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='pantau-keluar-tab.csv'; a.click();
+}
+// ===== MURID =====
+function masuk(){
+  let n=mNama.value.trim(), s=mNIS.value.trim(), k=mKode.value.trim();
+  if(!n||!s) return alert('Isi nama & NIS!');
+  // kode bebas, tapi kalau diisi salah tetap boleh masuk mode demo
+  saya={id:Date.now(), nama:n, nis:s, status:'Aman', soal:0, skor:0, keluar:0, warn:0, terakhir:'Mengerjakan di tab'};
+  let ex=murid.find(m=>m.nis===s); if(ex) saya=ex; else murid.push(saya);
+  addLog(n,'Masuk ujian (Mode Murid)');
+  document.getElementById('loginMurid').classList.add('hidden');
+  document.getElementById('ujianMurid').classList.remove('hidden');
+  if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+  renderSoal(); updateStatusMurid();
+}
+function updateStatusMurid(){
+  if(!saya) return;
+  let emoji = saya.keluar>=3?'🔴':saya.keluar>=1?'🟡':'🟢';
+  let txt = saya.keluar>=3?'🔴 BERMASALAH - Kamu sering keluar tab!':saya.keluar>=1?'🟡 PERINGATAN - Kamu ketahuan keluar tab!':'🟢 AMAN - Tetap di tab ini!';
+  document.getElementById('emojiStatus').textContent=emoji;
+  document.getElementById('statusMurid').textContent=txt;
+  document.getElementById('infoMurid').textContent='Keluar tab: '+saya.keluar+'x • Peringatan: '+saya.warn+'x • Terakhir: '+saya.terakhir;
+  document.getElementById('riwayatMurid').innerHTML = logs.filter(l=>l.includes(saya.nama)).slice(0,10).map(l=>'<div class="kotak">'+l+'</div>').join('') || '<p>Belum ada riwayat.</p>';
+  // sinkron ke data guru
+  let i=murid.findIndex(m=>m.nis===saya.nis); if(i>=0) murid[i]=saya; simpan(); tampilGuru();
+}
+function kenaKeluarTab(alasan){
+  if(!saya || saya.status==='Selesai') return;
+  keluarTab++; peringatanSaya++;
+  saya.keluar=keluarTab; saya.warn=peringatanSaya; saya.terakhir=alasan+' • '+jam();
+  if(saya.warn>=3) saya.status='Bermasalah'; else if(saya.warn>=1) saya.status='Keluar Tab';
+  addLog(saya.nama, '🚨 KELUAR TAB: '+alasan+' (ke-'+keluarTab+'x, peringatan '+peringatanSaya+'x)');
+  document.getElementById('alertBox').style.display='block';
+  setTimeout(()=>{ document.getElementById('alertBox').style.display='none'; },4000);
+  // getar HP kalau ada
+  if(navigator.vibrate) navigator.vibrate([200,100,200]);
+  updateStatusMurid();
+  alert('⚠️ KETAHUAN!\n\nKamu '+alasan+'\nIni tercatat di guru!\nKeluar tab: '+keluarTab+'x\nPeringatan: '+peringatanSaya+'x\n\n3x = BERMASALAH!');
+}
+function renderSoal(){
+  document.getElementById('soalJudul').textContent='Soal '+(idxSoal+1)+' dari '+SOAL.length;
+  document.getElementById('soalTeks').textContent=SOAL[idxSoal].q;
+  document.getElementById('pilihan').innerHTML=SOAL[idxSoal].a.map((p,i)=>`<label style="display:flex;gap:8px;border:1px solid #ddd;border-radius:12px;padding:12px;margin-top:8px;cursor:pointer;${jawaban[idxSoal]===i?'background:#dbeafe;border-color:#2563eb':''}"><input type="radio" name="pil" ${jawaban[idxSoal]===i?'checked':''} onclick="pilih(${i})"> <b>${'ABCD'[i]}.</b> ${p}</label>`).join('');
+  document.getElementById('progressSoal').textContent=Object.keys(jawaban).length+' dari '+SOAL.length+' soal terjawab';
+  if(saya){ saya.soal=Object.keys(jawaban).length; updateStatusMurid(); }
+}
+function pilih(i){ jawaban[idxSoal]=i; renderSoal(); }
+function nextSoal(){ if(idxSoal<SOAL.length-1){ idxSoal++; renderSoal(); } }
+function prevSoal(){ if(idxSoal>0){ idxSoal--; renderSoal(); } }
+function kumpulkan(){
+  if(Object.keys(jawaban).length<SOAL.length && !confirm('Masih ada soal kosong. Tetap kumpulkan?')) return;
+  let benar=0; SOAL.forEach((s,i)=>{ if(jawaban[i]===s.benar) benar++; });
+  let skor=Math.round(benar/SOAL.length*100);
+  saya.status='Selesai'; saya.soal=SOAL.length; saya.skor=skor; saya.terakhir='Selesai ujian • '+jam();
+  addLog(saya.nama,'Menyelesaikan ujian - Skor '+skor);
+  document.getElementById('ujianMurid').classList.add('hidden');
+  document.getElementById('hasilMurid').classList.remove('hidden');
+  document.getElementById('hasilTeks').textContent='Benar '+benar+'/'+SOAL.length+' • Skor '+skor+' • Keluar tab '+saya.keluar+'x • Peringatan '+saya.warn+'x';
+  if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+  tampilGuru();
+}
+// ===== DETEKSI KELUAR TAB - INTI APLIKASI =====
+document.addEventListener('visibilitychange', ()=>{
+  if(!saya) return;
+  if(document.hidden) kenaKeluarTab('Pindah tab / minimize browser');
+});
+window.addEventListener('blur', ()=>{
+  if(!saya) return;
+  // blur = pindah ke aplikasi lain (WA, YouTube, dll)
+  // delay sedikit biar tidak double dengan visibilitychange
+  setTimeout(()=>{ if(!saya) return; if(document.hidden) return; kenaKeluarTab('Pindah ke aplikasi lain (window blur)'); }, 500);
+});
+document.addEventListener('fullscreenchange', ()=>{
+  if(!saya) return;
+  if(!document.fullscreenElement) kenaKeluarTab('Keluar dari mode fullscreen');
+});
+document.addEventListener('copy', (e)=>{ if(!saya) return; kenaKeluarTab('Mencoba copy soal'); });
+document.addEventListener('paste', (e)=>{ if(!saya) return; e.preventDefault(); kenaKeluarTab('Mencoba paste jawaban'); });
+document.addEventListener('contextmenu', (e)=>{ if(saya) e.preventDefault(); });
+document.addEventListener('mouseleave', (e)=>{ if(!saya) return; if(e.clientY<=0) { /* mouse keluar ke atas - curiga pindah tab */ } });
+// Deteksi idle 60 detik
+let idleT; function resetIdle(){ clearTimeout(idleT); idleT=setTimeout(()=>{ if(saya && saya.status!=='Selesai') kenaKeluarTab('Tidak ada aktivitas 60 detik (diduga ditinggal)'); },60000); }
+['mousemove','keydown','click','touchstart'].forEach(ev=>document.addEventListener(ev, resetIdle)); resetIdle();
+// Sinkron antar tab (guru buka 2 tab)
+window.addEventListener('storage', ()=>{ murid=JSON.parse(localStorage.getItem('murid_tab')||'[]'); logs=JSON.parse(localStorage.getItem('logs_tab')||'[]'); tampilGuru(); });
+tampilGuru(); upd();
+</script>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script>
+
+</body></html>
